@@ -17,16 +17,6 @@ select <- dplyr::select
 #Raw metabolomics data
 quantRaw <- read_csv('~/Documents/GitHub/greeneMaui/data/raw/quant.csv')
 
-#ConCISE consensus data
-# Values for classyfire consensuses
-# 31 out of 35 (88.58%) networks with Library ID's found a consensus annotation
-# 54 out of 78 (69.24%) networks with Insilico annotations found a consensus annotation
-# 75.22999999999999% of all networks with an annotation received a consensus annotation
-
-conciseRaw <- read_csv('~/Documents/GitHub/greeneMaui/data/raw/conciseConsensus.csv')%>%
-  separate(conciseConsensus, c('superclass', 'class', 'subclass'), sep = ';')%>%
-  rename(featureNumber = scan)%>%
-  select(-1)
 
 canopus <- read_tsv('~/Documents/GitHub/greeneMaui/data/raw/canopus_structure_summary.tsv')%>%
   rename(superclass = `ClassyFire#superclass`,
@@ -80,7 +70,7 @@ libraryMatchSources <- read_csv('~/Documents/GitHub/greeneMaui/data/analysis/lib
 
 #coral cover data
 # coralCoverRaw <- read_csv('~/Documents/HIMB-PRF/projects/mauiDonahue/siteMatching/matched_observations.csv')
-coralCoverRaw <- read_csv('~/Downloads/maui_cramp_coralcover_forDonahue.csv')%>%
+coralCoverRaw <- read_csv('~/Documents/GitHub/greeneMaui/data/raw/maui_cramp_coralcover.csv')%>%
   mutate(siteGroup = case_when(site_id == 'MaHoS_3' ~ 'Site-01',
                                site_id == 'MaKah_3' ~ 'Site-03',
                                site_id == 'MaOlo_3' ~ 'Site-08',
