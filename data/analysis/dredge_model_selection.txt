@@ -1,0 +1,13 @@
+Global model call: lm(formula = Axis.1 ~ TNC.Ammonia.Benthic.log + TNC.NN.Benthic.log + 
+    TNC.Phosphate.Benthic.log + TNC.Silicate.Benthic.log + habPercent, 
+    data = pcoaMulReg)
+---
+Model selection table 
+      (Int)      hbP TNC.Amm.Bnt.log TNC.NN.Bnt.log TNC.Phs.Bnt.log TNC.Slc.Bnt.log df logLik  AICc delta weight
+17  0.09860                                                                 -0.3161  3 20.343 -32.5  0.00  0.375
+25 -0.19600                                                 -0.3091         -0.2516  4 21.588 -31.2  1.33  0.193
+18  0.12160 -0.06513                                                        -0.3017  4 21.579 -31.2  1.35  0.192
+19  0.14800                  0.09543                                        -0.2866  4 21.307 -30.6  1.89  0.146
+21  0.08984                                -0.01587                         -0.3100  4 20.361 -28.7  3.78  0.057
+26 -0.10470 -0.04857                                        -0.2313         -0.2571  5 22.282 -27.9  4.61  0.037
+Models ranked by AICc(x) 

@@ -1,0 +1,140 @@
+Start:  AIC=-73.57
+Axis.1 ~ TNC.Coral.Cover + TNC.Coral.Disease + TNC.Coral.Diversity + 
+    TNC.Raw.Resilience.Score + TNC.Herbivore.Biomass + TNC.Ammonia.Benthic.log + 
+    TNC.NN.Benthic.log + TNC.Phosphate.Benthic.log + TNC.Silicate.Benthic.log + 
+    habPercent
+
+                            Df Sum of Sq      RSS     AIC
+- TNC.Coral.Cover            1 0.0000019 0.040737 -75.571
+- habPercent                 1 0.0001325 0.040868 -75.520
+- TNC.Raw.Resilience.Score   1 0.0003078 0.041043 -75.451
+- TNC.Ammonia.Benthic.log    1 0.0004959 0.041231 -75.378
+- TNC.Coral.Diversity        1 0.0016493 0.042385 -74.937
+- TNC.Coral.Disease          1 0.0018185 0.042554 -74.873
+- TNC.Herbivore.Biomass      1 0.0023800 0.043116 -74.663
+<none>                                   0.040736 -73.572
+- TNC.Silicate.Benthic.log   1 0.0086806 0.049416 -72.481
+- TNC.NN.Benthic.log         1 0.0096751 0.050411 -72.162
+- TNC.Phosphate.Benthic.log  1 0.0213906 0.062126 -68.819
+
+Step:  AIC=-75.57
+Axis.1 ~ TNC.Coral.Disease + TNC.Coral.Diversity + TNC.Raw.Resilience.Score + 
+    TNC.Herbivore.Biomass + TNC.Ammonia.Benthic.log + TNC.NN.Benthic.log + 
+    TNC.Phosphate.Benthic.log + TNC.Silicate.Benthic.log + habPercent
+
+                            Df Sum of Sq      RSS     AIC
+- habPercent                 1 0.0001790 0.040916 -77.501
+- TNC.Ammonia.Benthic.log    1 0.0006011 0.041339 -77.337
+- TNC.Coral.Diversity        1 0.0016929 0.042430 -76.920
+- TNC.Raw.Resilience.Score   1 0.0022764 0.043014 -76.701
+- TNC.Coral.Disease          1 0.0037243 0.044462 -76.171
+<none>                                   0.040737 -75.571
+- TNC.Herbivore.Biomass      1 0.0054401 0.046177 -75.566
+- TNC.NN.Benthic.log         1 0.0096760 0.050413 -74.161
++ TNC.Coral.Cover            1 0.0000019 0.040736 -73.572
+- TNC.Silicate.Benthic.log   1 0.0219517 0.062689 -70.674
+- TNC.Phosphate.Benthic.log  1 0.0223268 0.063064 -70.579
+
+Step:  AIC=-77.5
+Axis.1 ~ TNC.Coral.Disease + TNC.Coral.Diversity + TNC.Raw.Resilience.Score + 
+    TNC.Herbivore.Biomass + TNC.Ammonia.Benthic.log + TNC.NN.Benthic.log + 
+    TNC.Phosphate.Benthic.log + TNC.Silicate.Benthic.log
+
+                            Df Sum of Sq      RSS     AIC
+- TNC.Ammonia.Benthic.log    1 0.0005079 0.041424 -79.304
+- TNC.Coral.Diversity        1 0.0015490 0.042465 -78.906
+- TNC.Raw.Resilience.Score   1 0.0021162 0.043033 -78.694
+- TNC.Coral.Disease          1 0.0036329 0.044549 -78.140
+<none>                                   0.040916 -77.501
+- TNC.Herbivore.Biomass      1 0.0055431 0.046460 -77.468
+- TNC.NN.Benthic.log         1 0.0101174 0.051034 -75.966
++ habPercent                 1 0.0001790 0.040737 -75.571
++ TNC.Coral.Cover            1 0.0000484 0.040868 -75.520
+- TNC.Silicate.Benthic.log   1 0.0217814 0.062698 -72.672
+- TNC.Phosphate.Benthic.log  1 0.0250471 0.065964 -71.860
+
+Step:  AIC=-79.3
+Axis.1 ~ TNC.Coral.Disease + TNC.Coral.Diversity + TNC.Raw.Resilience.Score + 
+    TNC.Herbivore.Biomass + TNC.NN.Benthic.log + TNC.Phosphate.Benthic.log + 
+    TNC.Silicate.Benthic.log
+
+                            Df Sum of Sq      RSS     AIC
+- TNC.Coral.Diversity        1 0.0010909 0.042515 -80.888
+- TNC.Raw.Resilience.Score   1 0.0016529 0.043077 -80.678
+- TNC.Coral.Disease          1 0.0035489 0.044973 -79.988
+- TNC.Herbivore.Biomass      1 0.0050372 0.046462 -79.467
+<none>                                   0.041424 -79.304
+- TNC.NN.Benthic.log         1 0.0096199 0.051044 -77.962
++ TNC.Ammonia.Benthic.log    1 0.0005079 0.040916 -77.501
++ TNC.Coral.Cover            1 0.0001682 0.041256 -77.369
++ habPercent                 1 0.0000858 0.041339 -77.337
+- TNC.Silicate.Benthic.log   1 0.0214314 0.062856 -74.632
+- TNC.Phosphate.Benthic.log  1 0.0298710 0.071295 -72.616
+
+Step:  AIC=-80.89
+Axis.1 ~ TNC.Coral.Disease + TNC.Raw.Resilience.Score + TNC.Herbivore.Biomass + 
+    TNC.NN.Benthic.log + TNC.Phosphate.Benthic.log + TNC.Silicate.Benthic.log
+
+                            Df Sum of Sq      RSS     AIC
+- TNC.Raw.Resilience.Score   1 0.0029556 0.045471 -81.812
+- TNC.Coral.Disease          1 0.0034428 0.045958 -81.642
+- TNC.Herbivore.Biomass      1 0.0042517 0.046767 -81.363
+<none>                                   0.042515 -80.888
+- TNC.NN.Benthic.log         1 0.0085620 0.051077 -79.952
++ TNC.Coral.Diversity        1 0.0010909 0.041424 -79.304
++ TNC.Coral.Cover            1 0.0001050 0.042410 -78.927
++ TNC.Ammonia.Benthic.log    1 0.0000498 0.042465 -78.906
++ habPercent                 1 0.0000264 0.042489 -78.898
+- TNC.Silicate.Benthic.log   1 0.0205646 0.063080 -76.575
+- TNC.Phosphate.Benthic.log  1 0.0290193 0.071535 -74.563
+
+Step:  AIC=-81.81
+Axis.1 ~ TNC.Coral.Disease + TNC.Herbivore.Biomass + TNC.NN.Benthic.log + 
+    TNC.Phosphate.Benthic.log + TNC.Silicate.Benthic.log
+
+                            Df Sum of Sq      RSS     AIC
+- TNC.Coral.Disease          1 0.0049745 0.050445 -82.151
+<none>                                   0.045471 -81.812
++ TNC.Raw.Resilience.Score   1 0.0029556 0.042515 -80.888
++ TNC.Coral.Cover            1 0.0028696 0.042601 -80.855
++ TNC.Coral.Diversity        1 0.0023936 0.043077 -80.678
+- TNC.Herbivore.Biomass      1 0.0106072 0.056078 -80.458
++ TNC.Ammonia.Benthic.log    1 0.0003334 0.045137 -79.930
++ habPercent                 1 0.0002472 0.045224 -79.900
+- TNC.NN.Benthic.log         1 0.0162616 0.061732 -78.921
+- TNC.Silicate.Benthic.log   1 0.0204789 0.065950 -77.863
+- TNC.Phosphate.Benthic.log  1 0.0269240 0.072395 -76.371
+
+Step:  AIC=-82.15
+Axis.1 ~ TNC.Herbivore.Biomass + TNC.NN.Benthic.log + TNC.Phosphate.Benthic.log + 
+    TNC.Silicate.Benthic.log
+
+                            Df Sum of Sq      RSS     AIC
++ TNC.Coral.Cover            1 0.0064669 0.043978 -82.346
+<none>                                   0.050445 -82.151
++ TNC.Coral.Disease          1 0.0049745 0.045471 -81.812
++ TNC.Raw.Resilience.Score   1 0.0044872 0.045958 -81.642
++ TNC.Coral.Diversity        1 0.0026546 0.047791 -81.016
+- TNC.Herbivore.Biomass      1 0.0134858 0.063931 -80.361
++ TNC.Ammonia.Benthic.log    1 0.0006541 0.049791 -80.360
++ habPercent                 1 0.0005995 0.049846 -80.343
+- TNC.NN.Benthic.log         1 0.0141449 0.064590 -80.196
+- TNC.Phosphate.Benthic.log  1 0.0219591 0.072404 -78.369
+- TNC.Silicate.Benthic.log   1 0.0248113 0.075257 -77.751
+
+Step:  AIC=-82.35
+Axis.1 ~ TNC.Herbivore.Biomass + TNC.NN.Benthic.log + TNC.Phosphate.Benthic.log + 
+    TNC.Silicate.Benthic.log + TNC.Coral.Cover
+
+                            Df Sum of Sq      RSS     AIC
+<none>                                   0.043978 -82.346
+- TNC.Coral.Cover            1 0.0064669 0.050445 -82.151
+- TNC.NN.Benthic.log         1 0.0079484 0.051927 -81.688
++ TNC.Coral.Disease          1 0.0013772 0.042601 -80.855
++ TNC.Coral.Diversity        1 0.0010591 0.042919 -80.736
+- TNC.Silicate.Benthic.log   1 0.0120063 0.055985 -80.484
++ TNC.Raw.Resilience.Score   1 0.0000486 0.043930 -80.364
++ habPercent                 1 0.0000349 0.043943 -80.359
++ TNC.Ammonia.Benthic.log    1 0.0000002 0.043978 -80.346
+- TNC.Herbivore.Biomass      1 0.0133025 0.057281 -80.118
+- TNC.Phosphate.Benthic.log  1 0.0282696 0.072248 -76.404
