@@ -33,3 +33,26 @@ All raw data is in the subdirectory data/raw/
 
 ### plots:
 - Plots and figures generated in R<br />
+
+### raw:
+#### canopus_formula_summary.tsv
+- CANOPUS formula summary exported directly from SIRIUS 4
+#### canopus_structure_summary.tsv
+- CANOPUS structure and annotation summary exported directly from SIRIUS 4
+#### formula_identifications.tsv
+- Formula predicted from Sirisu/Zodiac exported directly from SIRIUS 4
+#### greeneLibraryClassyFire
+- Library classyfire annotations from GNPS
+#### libraryMatches
+- Spectral Library matches from GNPS
+#### nodeInfo.tsv
+- networking information exported from GNPS
+#### quant.csv
+- Feature quantification table exported from MzMine
+#### CAH_3km_Intersection
+- Land use dataframe
+#### MSMS_Metadata
+- metadata information for each site
+#### maui_cramp_coralcover
+- coral cover from overlapping CRAMP sites
+
