@@ -12,12 +12,25 @@ Anthropogenic activities pose a significant risk to vulnerable marine ecosystems
 Funding provided by NASA Ecological Forecasting Program grant NNX17AI21G. Additional funding support for BL, TA and SFH from Australian Research Council grants DP180103199 and DP230102986. ZAQ was supported by funding provided by NSF-OCE Postdoctoral fellowship program grant 2308400.
 
 
-
+*****
 ## Repository Overview:
 In this repository you will find the code used to analyze this data and all raw data <br /> <br />
 We have tried to clearly index each script and file below but if you have any questions please email me: zquinlan@gmail.com <br /> <br />
 
 All raw data is in the subdirectory data/raw/
+
+### Requirements:
+R - Code was written and tested in 3.6.1 <br />
+Libraries - tidyverse, broom, data.table, DescTools, readxl, vegan, ape, lme4, MuMIn, RColorBrewer <br />
+
+### Installation and running the code:
+1) Clone the repo to your desktop
+2) install R and the required libraries using the install.libraries() function
+3) Open the .R file in the code directory
+4) The locations of all the files are hard coded in the second section of the code "Loading -- Datasets". Change the beginnig file paths "'~/Documents/GitHub/greeneMaui/" to the location where you have cloned the respository manually
+5) The code is divided into specific sections and labled based on what we are doing, preliminary cleaning (CLEANING), running statistics (STATS), Visualizing the data (VISUALIZATION).
+   - Specific sections where figure panels are created have been labled with the correct figure and panel
+
 
 *****
 # Contents:
