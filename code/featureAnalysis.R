@@ -8,6 +8,7 @@ library(vegan)
 library(ape)
 library(lme4)
 library(MuMIn)
+library(emmeans)
 
 library(RColorBrewer)
 
@@ -160,7 +161,7 @@ hcaColors <- c("#56B7E9", "#B485D8", "#E56C2F")
 
 # Cleaning -- raw quant --------------------------------------------------
 quantClean <- quantRaw%>%
-  select(-c(2:13, X787))%>%
+  select(-c(2:13, `...787`))%>%
   pivot_longer(2:ncol(.), names_to = 'sample', values_to = 'xic')%>%
   mutate(sample = gsub('.mzML Peak area', '', sample))%>%
   rename(featureNumber = `row ID`)
@@ -185,6 +186,7 @@ montWm <- quantClean%>%
   left_join(nodeInfo%>%
               select(featureNumber, network),
             by = 'featureNumber')
+
 #Porites dataframe
 porWm <- quantClean%>% 
   filter(sample %like% '%Batch3%',
@@ -205,7 +207,6 @@ porWm <- quantClean%>%
               select(featureNumber, network),
             by = 'featureNumber')
   
-
 # Cleaning -- background remoaval -- DEFINING WHICH SPECIES TO LOOK AT-----------------------------------------
 # Here we are flagging all features that are background 
 # (e.g. half the average peak height in the sample is less than max peak height in the blanks)
@@ -261,6 +262,8 @@ noBlanks%>%
   unique()%>%
   length()
 
+  
+
 # Cleaning -- minimum peak height -----------------------------------------
 # First we need to look at a histogram of the XICs in the data to identify what is a rare xic
 # By looking at the max abundance of each ion feature we can identify what xic first quartile
@@ -315,7 +318,7 @@ noRare%>%
   length()
 
 
-# Cleaning -- making the stats working data frame -------------------------
+# Cleaning -- making the stats working data frame -- NEED TO SET the groups here based on species -------------------------
 # This is the working data frame (WDF) which we will use for all stats and plotting
 # It is all the raw feature xic and log10 transformed xic for each sample with metadata included
 # The HCAGrouping is calculated from a cluster dendogram lower in this code 
@@ -357,10 +360,6 @@ set.seed(23068)
 lmerHCAGroups <- statsWdf%>%
   group_by(netVals)%>%
   nest()%>%
-  # mutate(data = map(data, ~lmer(asin ~ HCAgrouping + (1|featureNumber) + (1|siteGroup), data = .x, 
-  #                               control =  lmerControl(check.nlev.gtr.1 = "ignore",
-  #                                                      check.conv.singular = 'ignore',
-  #                                                      check.nobs.vs.nRE = 'ignore'))%>%
   mutate(data = map(data, ~lmer(asin ~ siteGroup + (1|featureNumber), data = .x,
                                 control =  lmerControl(check.nlev.gtr.1 = "ignore",
                                                        check.conv.singular = 'ignore',
@@ -388,24 +387,24 @@ siteAverageMetabolomes <- statsWdf%>%
   left_join(canopus%>%
               select(superclass, class, subclass, featureNumber), by = 'featureNumber')%>%
   filter(netVals %in% hcaSigSubnets)%>%
-  group_by(siteGroup, netVals, SampleID, superclass, class, subclass)%>%
+  group_by(siteGroup, netVals, SampleID)%>%
   summarize_if(is.numeric, sum)%>%
   ungroup()%>%
   mutate(ra = asin(sqrt(ra)))%>%
-  unite(annotation, c(superclass, class, subclass), sep = ';')%>%
-  group_by(siteGroup, annotation)%>%
+  # unite(netVals, c(superclass, class, subclass), sep = ';')%>%
+  group_by(siteGroup, netVals)%>%
   summarize_if(is.numeric, mean)%>%
   ungroup()%>%
-  select(siteGroup, annotation, ra)%>%
-  group_by(annotation)%>%
+  select(siteGroup, netVals, ra)%>%
+  group_by(netVals)%>%
   mutate(ra = zscore(ra))%>%
   ungroup()%>%
-  separate(annotation, c('superclass', 'class', 'subclass'), sep = ';')%>%
-  mutate(deepestAnnotation = case_when(subclass != 'NA' ~ subclass,
-                                       class != 'NA' & subclass == 'NA' ~ class,
-                                       TRUE ~ superclass))%>%
-  select(-c(superclass, class, subclass))%>%
-  pivot_wider(names_from = 'deepestAnnotation', values_from = 'ra')%>%
+  # separate(annotation, c('superclass', 'class', 'subclass'), sep = ';')%>%
+  # mutate(deepestAnnotation = case_when(subclass != 'NA' ~ subclass,
+  #                                      class != 'NA' & subclass == 'NA' ~ class,
+  #                                      TRUE ~ superclass))%>%
+  # select(-c(superclass, class, subclass))%>%
+  pivot_wider(names_from = 'netVals', values_from = 'ra')%>%
   column_to_rownames(var = 'siteGroup')
 
 
@@ -413,6 +412,7 @@ siteAverageMetabolomes%>%
   pheatmap::pheatmap()
 
 #dendo grouping for montipora
+# We are pivoting the order of the sites within the unsupervised dendogram to be more clear
 dendo <- pheatmap::pheatmap(siteAverageMetabolomes)$tree_row
 dendo <- dendextend::rotate(dendo, order = c('Site-12','Site-15', 'Site-06', 'Site-07', 'Site-04', 'Site-09', 
                                                  'Site-01', 'Site-10', 'Site-08', 'Site-11', 'Site-14',
@@ -429,7 +429,7 @@ annotationColorDf <- data.frame(Site = c('Site-15', 'Site-06', 'Site-07', 'Site-
                                               'Site-12', 'Site-01', 'Site-10', 'Site-08', 'Site-11', 'Site-14',
                                               'Site-16', 'Site-05', 'Site-13', 'Site-02', 'Site-03'))
 
-pdf('~/Documents/GitHub/greeneMaui/data/plots/biclusterSubnetworkAverages.pdf', width = 20, height = 12)  
+pdf('~/Documents/GitHub/greeneMaui/data/plots/biclusterSubnetworkAverages.pdf', width = 25, height = 12)  
 pheatmap::pheatmap(siteAverageMetabolomes, cluster_rows = dendo, color = brewer.pal(n = 9, name = "Greys"),
                    angle_col = 45)
                    # annotation_color = annotationList, annotation_col = annotationColorDf)
@@ -445,13 +445,203 @@ dendoPor <- dendextend::rotate(dendo, order = c('Site-03', 'Site-05', 'Site-16',
                                                 'Site-14', 'Site-08','Site-10', 'Site-11','Site-12',
                                                 'Site-15', 'Site-09', 'Site-06', 'Site-07', 'Site-01', 'Site-04'))
 
-pdf('~/Documents/GitHub/greeneMaui/data/plots/poritesBiclusterSubnetworkAverages.pdf', width = 20, height = 12)  
-pheatmap::pheatmap(siteAverageMetabolomes, cluster_rows = dendoPor, color = brewer.pal(n = 9, name = "Greys"),
+pdf('~/Documents/GitHub/greeneMaui/data/plots/montiporaBiclusterSubnetworkAverages.pdf', width = 20, height = 12)  
+pheatmap::pheatmap(siteAverageMetabolomes, cluster_rows = dendo, color = brewer.pal(n = 9, name = "Greys"), clustering_method = 'ward.D2',
                    angle_col = 45)
 dev.off()
 
 
-# Visual -- Environmental variability across hca clusters -----------------
+# Visual - SupplementalFigure -- hiearchical clustering with all subnetworks --------
+siteAverageMetabolomesFull <- statsWdf%>%
+  left_join(canopus%>%
+              select(superclass, class, subclass, featureNumber), by = 'featureNumber')%>%
+  group_by(siteGroup, netVals, SampleID)%>%
+  summarize_if(is.numeric, sum)%>%
+  ungroup()%>%
+  mutate(ra = asin(sqrt(ra)))%>%
+  # unite(netVals, c(superclass, class, subclass), sep = ';')%>%
+  group_by(siteGroup, netVals)%>%
+  summarize_if(is.numeric, mean)%>%
+  ungroup()%>%
+  select(siteGroup, netVals, ra)%>%
+  group_by(netVals)%>%
+  mutate(ra = zscore(ra))%>%
+  ungroup()%>%
+  # separate(annotation, c('superclass', 'class', 'subclass'), sep = ';')%>%
+  # mutate(deepestAnnotation = case_when(subclass != 'NA' ~ subclass,
+  #                                      class != 'NA' & subclass == 'NA' ~ class,
+  #                                      TRUE ~ superclass))%>%
+  # select(-c(superclass, class, subclass))%>%
+  pivot_wider(names_from = 'netVals', values_from = 'ra')%>%
+  column_to_rownames(var = 'siteGroup')
+
+
+siteAverageMetabolomesFull%>%
+  pheatmap::pheatmap()
+
+#dendo grouping for montipora
+# We are pivoting the order of the sites within the unsupervised dendogram to be more clear
+dendoFull <- pheatmap::pheatmap(siteAverageMetabolomesFull)$tree_row
+dendoFull <- dendextend::rotate(dendoFull, order = c('Site-12','Site-15', 'Site-06', 'Site-07', 'Site-04', 'Site-09', 
+                                             'Site-01', 'Site-10', 'Site-08', 'Site-11', 'Site-14',
+                                             'Site-16', 'Site-05', 'Site-13', 'Site-02', 'Site-03'))
+
+
+#dendo grouping for porites
+dendoPorFull <- pheatmap::pheatmap(siteAverageMetabolomesFull)$tree_row
+dendoPorFull <- dendextend::rotate(dendoPorFull, order = c('Site-03', 'Site-05', 'Site-16','Site-02', 'Site-13',
+                                                'Site-14', 'Site-08','Site-10', 'Site-11','Site-12',
+                                                'Site-15', 'Site-09', 'Site-06', 'Site-07', 'Site-01', 'Site-04'))
+
+## Make sure to change the cluter to dendoPor Full for Porites clustering
+pdf('~/Documents/GitHub/greeneMaui/data/plots/unfilteredMontiporaBiclusterSubnetworkAverages.pdf', width = 20, height = 12)  
+pheatmap::pheatmap(siteAverageMetabolomesFull,
+                   cluster_rows = dendoPorFull,
+                   color = brewer.pal(n = 9, name = "Greys"), clustering_method = 'ward.D2',
+                   angle_col = 45)
+dev.off()
+
+
+# Visual -- Supplemental Figure 5b. Site 12 -------------------------------
+site12Features <- siteAverageMetabolomes%>%
+  rownames_to_column(var = 'siteGroup')%>%
+  pivot_longer(2:ncol(.), names_to = 'netVals', values_to = 'zscore')%>%
+  filter(siteGroup == 'Site-12',
+         zscore > 2.5)%>%
+  pull(netVals)
+
+site12filtered <- colnames(siteAverageMetabolomes)
+
+site12filtered <- site12filtered[!site12filtered %in% site12Features]
+
+pdf('~/Documents/GitHub/greeneMaui/data/plots/MontiporaSupplementalFigure8a.pdf', width = 20, height = 12)  
+pheatmap::pheatmap(siteAverageMetabolomes%>%
+                     select(all_of(site12filtered)),
+                   cluster_rows = dendoPorFull,
+                   color = brewer.pal(n = 9, name = "Greys"), clustering_method = 'ward.D2',
+                   angle_col = 45)
+dev.off()
+
+
+# Visual -- Supplemental Figure 8 -----------------------------------------
+View(libraryMatches%>%
+  left_join(nodeInfo%>%
+              select(featureNumber, network),
+            by = 'featureNumber')%>%
+  mutate(netVals = case_when(network == -1 ~ as.numeric(featureNumber)*-1,
+                             TRUE ~ network))%>%
+  filter(netVals %in% site12Features))
+
+
+
+# Visual -- PcOA of enriched metabolites ----------------------------------------------------------
+pcoaBase <- statsWdf%>%
+  left_join(canopus%>%
+              select(superclass, class, subclass, featureNumber), by = 'featureNumber')%>%
+  filter(netVals %in% hcaSigSubnets)%>%
+  unite(annotation, c('superclass', 'class', 'subclass'), sep = ';')%>%
+  unite(siteGroup, c('siteGroup', 'HCAgrouping'), sep = '_')%>%
+  ungroup()%>%
+  mutate(calc = 'feature',
+         group = as.character(featureNumber))
+
+pcoaGrouped <- pcoaBase%>%
+  bind_rows(pcoaBase%>%
+              mutate(calc = 'network', group = as.character(netVals)))%>%
+  bind_rows(pcoaBase%>% 
+              mutate(calc = 'annotation', group = annotation))%>%
+  bind_rows(pcoaBase%>% 
+              separate(annotation, c('superclass', 'class', 'subclass'), sep = ';')%>%
+              # unite(class, c('superclass', 'class'), sep = ';')%>%
+              mutate(calc = 'superclass', group = superclass))%>%
+  ungroup()%>%
+  group_by(siteGroup, SampleID, group, calc)%>%
+  summarize_if(is.numeric, sum)%>%
+  mutate(ra = asin(sqrt(ra)))%>%
+  ungroup()%>%
+  group_by(siteGroup, group, calc)%>%
+  summarize_if(is.numeric, mean)%>%
+  ungroup()%>%
+  select(siteGroup, group, calc, ra)%>%
+  group_by(calc)%>%
+  nest()%>%
+  mutate(pca = map(data, ~pivot_wider(data = .x, names_from = 'group', values_from = 'ra')%>%
+                                         column_to_rownames(var = 'siteGroup')%>%
+                                         prcomp()%>%
+                     factoextra::fviz_pca_biplot(repel = TRUE, 
+                                     col.var = "steelblue", # Color for variables
+                                     col.ind = "darkgreen" # Color for individuals
+                     )),
+         pcoa = map(data, ~pivot_wider(data = .x, names_from = 'group', values_from = 'ra')%>%
+                      column_to_rownames(var = 'siteGroup')%>%
+                      vegdist()%>%
+                      pcoa()),
+         plot = map(pcoa, ~.x$vectors%>%
+                      as.data.frame()%>%
+                      rownames_to_column(var = "sample")%>%
+                      separate(sample, c('siteGroup', 'HCAgrouping'), sep = '_')%>%
+                      mutate(siteGroup = gsub('Site-', '', siteGroup))%>%
+                      ggplot(., aes(x = Axis.1, y = Axis.2, color = HCAgrouping)) +
+                      geom_point(size = 20) +
+                      geom_text(aes(label = siteGroup), position = 'jitter', color = 'black', cex = 8) +
+                      scale_color_manual(values = c('grey', hcaColors)) + # Colors for Montipora
+                      # scale_color_manual(values = c(hcaColors)) + # Colors for porities
+                      theme(
+                        panel.background = element_rect(fill = "transparent"), # bg of the panel
+                        plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+                        panel.grid.major.y = element_line(size = 0.2, linetype = 'solid',colour = "gray"), # get rid of major grid
+                        panel.grid.major.x = element_line(size = 0.2, linetype = 'solid',colour = "gray"), # get rid of minor grid
+                        legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+                        legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+                        legend.text = element_text(face = "italic"),
+                        axis.text = element_text(size = 25),
+                        axis.title = element_text(size = 25)) +
+                      xlab(str_c("Axis 1", " (", round(.x$values$Relative_eig[1], digits = 4)*100, "%)", sep = "")) +
+                      ylab(str_c("Axis 2", " (", round(.x$values$Relative_eig[2], digits = 4)*100, "%)", sep = ""))))
+
+pdf('~/Documents/GitHub/greeneMaui/data/plots/montiporaPcoa.pdf', width = 15, height = 10)
+pcoaGrouped$pca
+pcoaGrouped$plot
+dev.off()
+
+
+
+# Stats -- Permanavo of PcOA groups ---------------------------------------
+# Testing whether there is a difference between the clusters 
+permanovaDf <- statsWdf%>%
+  filter(netVals %in% hcaSigSubnets)%>%
+  filter(HCAgrouping != 0)%>%
+  group_by(siteGroup, HCAgrouping, netVals, SampleID)%>%
+  summarize_if(is.numeric, sum)%>%
+  ungroup()%>%
+  mutate(ra = asin(sqrt(ra)))%>%
+  group_by(siteGroup, netVals, HCAgrouping)%>%
+  summarize_if(is.numeric, mean)%>%
+  ungroup()%>%
+  select(siteGroup, HCAgrouping, netVals, ra)%>%
+  pivot_wider(names_from = 'netVals', values_from = 'ra')
+  
+# Montipora 9.99e-5, pairwise ≤ 0.0092
+# Porites 9.99e-5, pairwise ≤ 0.0099
+permanovaDf%>%  
+  adonis2(.[3:ncol(.)] ~ HCAgrouping,  data = ., permutations = 10000, na.rm = TRUE, method = 'bray')
+
+permanovaDf%>%
+  pairwiseAdonis::pairwise.adonis2(.[3:ncol(.)] ~ HCAgrouping,  data = ., permutations = 10000, na.rm = TRUE, method = 'bray')
+
+
+# Stats -- PermDisp of PcOA groups ----------------------------------------
+# montipora p = 0.1766
+# porites p = 0.1391
+permdispResults <- betadisper(d = vegdist(permanovaDf[3:ncol(permanovaDf)], method = 'bray'), group = permanovaDf$HCAgrouping, type = 'centroid')
+
+plot(permdispResults)
+
+anova(permdispResults)
+
+TukeyHSD(permdispResults)
+
+# Visual -- Environmental variability across hca clusters -- MUST CHANGE ONE VALUE FOR SPECIES DIFFERENCES -----------------
 landUse <- landUseRaw%>%
   select(Site, Hab_Status, Shape_Area)%>%
   group_by(Site, Hab_Status)%>%
@@ -487,7 +677,7 @@ enviroVariability <- rawMetadata%>%
   unique()%>%
   filter(!is.na(TNC.Coral.Cover),
          siteGroup %in% labels,
-         siteGroup != 'Site-12'
+         siteGroup != 'Site-12' # Have to change this between species, uncomment for Montipora
          )%>%
   mutate(TNC.Phosphate.Benthic.log = log10(TNC.Phosphate.Benthic), 
          TNC.Silicate.Benthic.log = log10(TNC.Silicate.Benthic), 
@@ -593,13 +783,13 @@ enviroVariability%>%
   group_by(responseVar)%>%
   mutate(values = zscore(values),
          site = as.factor(site),
-         # site = fct_relevel(site, '0 Site-12', '1 Site-15', '1 Site-06', '1 Site-07', '1 Site-04', '1 Site-09', 
-         #                    '2 Site-01', '2 Site-10', '2 Site-08', '2 Site-11', '2 Site-14',
-         #                    '3 Site-16', '3 Site-05', '3 Site-13', '3 Site-02', '3 Site-03'))%>% # Montipora order
-         site = fct_relevel(site, '3 Site-03', '3 Site-05', '3 Site-16', '3 Site-02', '3 Site-13', 
-                            '2 Site-14', '2 Site-08', '2 Site-10', '2 Site-11', '2 Site-12', 
-                            '1 Site-15', '1 Site-09', '1 Site-06', '1 Site-07', '1 Site-01', '1 Site-04'
-                            ))%>% # Porites order
+         site = fct_relevel(site, '0 Site-12', '1 Site-15', '1 Site-06', '1 Site-07', '1 Site-04', '1 Site-09',
+                            '2 Site-01', '2 Site-10', '2 Site-08', '2 Site-11', '2 Site-14',
+                            '3 Site-16', '3 Site-05', '3 Site-13', '3 Site-02', '3 Site-03'))%>% # Montipora order
+         # site = fct_relevel(site, '3 Site-03', '3 Site-05', '3 Site-16', '3 Site-02', '3 Site-13', 
+         #                    '2 Site-14', '2 Site-08', '2 Site-10', '2 Site-11', '2 Site-12', 
+         #                    '1 Site-15', '1 Site-09', '1 Site-06', '1 Site-07', '1 Site-01', '1 Site-04'
+         #                    ))%>% # Porites order
   ungroup()%>%
   arrange(site)%>%
   pivot_wider(names_from = 'responseVar', values_from = 'values')%>%
@@ -638,13 +828,13 @@ enviroVariability%>%
   group_by(responseVar)%>%
   mutate(values = zscore(values),
          site = as.factor(site),
-         # site = fct_relevel(site, '0 Site-12', '1 Site-15', '1 Site-06', '1 Site-07', '1 Site-04', '1 Site-09', 
-         #                    '2 Site-01', '2 Site-10', '2 Site-08', '2 Site-11', '2 Site-14',
-         #                    '3 Site-16', '3 Site-05', '3 Site-13', '3 Site-02', '3 Site-03'))%>% # Montipora order
-         site = fct_relevel(site, '3 Site-03', '3 Site-05', '3 Site-16', '3 Site-02', '3 Site-13', 
-                            '2 Site-14', '2 Site-08', '2 Site-10', '2 Site-11', '2 Site-12', 
-                            '1 Site-15', '1 Site-09', '1 Site-06', '1 Site-07', '1 Site-01', '1 Site-04'
-         ))%>% # Porites order
+         site = fct_relevel(site, '0 Site-12', '1 Site-15', '1 Site-06', '1 Site-07', '1 Site-04', '1 Site-09',
+                            '2 Site-01', '2 Site-10', '2 Site-08', '2 Site-11', '2 Site-14',
+                            '3 Site-16', '3 Site-05', '3 Site-13', '3 Site-02', '3 Site-03'))%>% # Montipora order
+         # site = fct_relevel(site, '3 Site-03', '3 Site-05', '3 Site-16', '3 Site-02', '3 Site-13', 
+         #                    '2 Site-14', '2 Site-08', '2 Site-10', '2 Site-11', '2 Site-12', 
+         #                    '1 Site-15', '1 Site-09', '1 Site-06', '1 Site-07', '1 Site-01', '1 Site-04'
+         # ))%>% # Porites order
   ungroup()%>%
   arrange(site)%>%
   pivot_wider(names_from = 'responseVar', values_from = 'values')%>%
@@ -658,13 +848,13 @@ enviroVariability%>%
   group_by(responseVar)%>%
   mutate(values = zscore(values),
          site = as.factor(site),
-         # site = fct_relevel(site, '0 Site-12', '1 Site-15', '1 Site-06', '1 Site-07', '1 Site-04', '1 Site-09', 
-         #                    '2 Site-01', '2 Site-10', '2 Site-08', '2 Site-11', '2 Site-14',
-         #                    '3 Site-16', '3 Site-05', '3 Site-13', '3 Site-02', '3 Site-03'))%>% # Montipora order
-         site = fct_relevel(site, '3 Site-03', '3 Site-05', '3 Site-16', '3 Site-02', '3 Site-13', 
-                            '2 Site-14', '2 Site-08', '2 Site-10', '2 Site-11', '2 Site-12', 
-                            '1 Site-15', '1 Site-09', '1 Site-06', '1 Site-07', '1 Site-01', '1 Site-04'
-         ))%>% # Porites order
+         site = fct_relevel(site, '0 Site-12', '1 Site-15', '1 Site-06', '1 Site-07', '1 Site-04', '1 Site-09',
+                            '2 Site-01', '2 Site-10', '2 Site-08', '2 Site-11', '2 Site-14',
+                            '3 Site-16', '3 Site-05', '3 Site-13', '3 Site-02', '3 Site-03'))%>% # Montipora order
+         # site = fct_relevel(site, '3 Site-03', '3 Site-05', '3 Site-16', '3 Site-02', '3 Site-13', 
+         #                    '2 Site-14', '2 Site-08', '2 Site-10', '2 Site-11', '2 Site-12', 
+         #                    '1 Site-15', '1 Site-09', '1 Site-06', '1 Site-07', '1 Site-01', '1 Site-04'
+         # ))%>% # Porites order
   ungroup()%>%
   arrange(site)%>%
   pivot_wider(names_from = 'responseVar', values_from = 'values')%>%
@@ -685,22 +875,10 @@ enviroVariability%>%
   unnest(data)
 
 
-# Visual -- TIC -----------------------------------------------------------
-# Have to figure out how they did the sampling. Were all the samples chunks?
-# Might have to calculate RA so that we are not dealing with concentration issues
-statsWdf%>%
-  unite(local, c(Site, HCAgrouping), sep = '_')%>%
-  group_by(SampleID, local)%>%
-  summarize_if(is.numeric, sum)%>%
-  ungroup()%>%
-  ggplot(aes(local, xic)) +
-  geom_boxplot()
-
-
 # Supplemental Figure 1 -- PCoA -- grouped at the subnetwork consensus level four clusters ---------------------------------
 pcoaSuperclassDf <- statsWdf%>%
   filter(netVals %in% hcaSigSubnets,
-         siteGroup != 'Site-12'
+         # siteGroup != 'Site-12'
          )%>%
   left_join(canopus%>%
               select(superclass, class, subclass, featureNumber), by = 'featureNumber')%>%
@@ -774,7 +952,8 @@ pcoaAxis <- pcoaSuperclass$vectors%>%
   summarize_if(is.numeric, mean, na.rm = TRUE)
 
 pcoaMulReg <- pcoaAxis%>%
-  left_join(enviroVariability, by = c('Site', 'HCAgrouping'))
+  left_join(enviroVariability, by = c('Site', 'HCAgrouping'))%>%
+  mutate(HCAgrouping = as.factor(HCAgrouping))
 
 # Checking to see if there is too much correlation between any of the 
 pcoaMulReg%>%
@@ -783,6 +962,7 @@ pcoaMulReg%>%
   cor()%>%
   corrplot::corrplot()
   
+
 
 # Stats -- Multiple Regression AIC ----------------------------------------
 lm_test <- lm(Axis.1 ~ TNC.Ammonia.Benthic.log + TNC.NN.Benthic.log + TNC.Phosphate.Benthic.log + TNC.Silicate.Benthic.log + habPercent, 
@@ -797,7 +977,7 @@ sink('./analysis/dredge_model_selection.txt')
 head(dredge_n_select)
 sink()
 
-# Stats -- MRegression ----------------------------------------------------
+# Stats -- MRegression pcoa vs environmental variables ----------------------------------------------------
 #Montipora
 lmLimited <- lm(Axis.1 ~ TNC.Phosphate.Benthic.log + TNC.Silicate.Benthic.log + TNC.Ammonia.Benthic.log + habPercent, data = pcoaMulReg)
 
@@ -811,7 +991,12 @@ summary(lmLimited)
 # Porites 50.03%
 
 
+# Stats -- MRegression pcoa vs HCA grouping -----------------------------
+# Montipora p = 2e-10, r2 = 0.9717
+# Porites p = 2e-6, r2 = 0.8448
+lmHca <- lm(Axis.1 ~ HCAgrouping, data = pcoaMulReg)
 
+summary(lmHca)
 
 
 # Stats -- lm a with coral cover -----------------------------------
@@ -903,7 +1088,7 @@ betaDiv <- statsWdf%>%
   unnest(c(shannon, specN))%>%
   mutate(eveness = shannon/log(specN))
 
-pdf('~/Documents/GitHub/greeneMaui/data/plots/poritesshannonDiversity.pdf', width = 12, height = 10)
+pdf('~/Documents/GitHub/greeneMaui/data/plots/montiporashannonDiversity.pdf', width = 12, height = 10)
 betaDiv%>%
   group_by(siteGroup)%>%
   mutate(HCAgrouping = as.factor(HCAgrouping),
@@ -933,12 +1118,13 @@ betaDiv%>%
 # Tukey p-value < 0.001 for all Tukey differences
 shannonPvalues <- betaDiv%>%
   lmer(shannon~HCAgrouping + (1|siteGroup), data = .)%>%
-  multcomp::glht(., linfct = multcomp::mcp(HCAgrouping = "Tukey"))%>%
-  summary(., test = multcomp::adjusted('BH'))%>%
-  tidy()%>%
+  emmeans(pairwise ~ HCAgrouping, adjust = "tukey")%>%
+  # multcomp::glht(., linfct = multcomp::mcp(HCAgrouping = "Tukey"))
+  summary()%>%
+  as.data.frame(.$contrasts)%>%
   mutate(test = 'shannon')
 
-# Figure 2b-c -- elemental Ratios -- N:C vs P:C and NOSC plots -------------------------------------------------------
+# Figure 2b-c -- elemental Ratios -- N:C vs P:C and NOSC plots -- NEED TO CHANGE IN BETWEEN SPECIES -------------------------------------------------------
 ## N:C, P:C were weighted by relative abundance of the molecules
 ## NOSC and gCox were weighted by (xic*C) /sum(xic*C)
 ## NOSC is the nominal oxidation state of carbon for each molecule
@@ -946,7 +1132,7 @@ shannonPvalues <- betaDiv%>%
 ## N:C, P:C, NOSC and gCox are further summed within each sample to represent the total N:C
 ## Summed HCA group NOSC, gCox, N:C, P:C across all samples and metabolites 
 elementalComposition <- statsWdf%>%
-  filter(siteGroup != 'Site-12')%>%
+  filter(siteGroup != 'Site-12')%>% ## Need to comment out for Porites
   ungroup()%>%
   left_join(siriusFormula%>%
               select(featureNumber, C:P), by = 'featureNumber')%>%
@@ -1034,7 +1220,7 @@ dev.off()
 # However these metabolites could also be intra-cellular meaning the corals are increasingly storing more reduced forms of carbon
 # Surprsingly N:C does not vary similarly. We would expect N:C to increase with more reduced metabolites
 # This could mean that there is more potential energy but it is more locked down in benzene rings and harder to degrade.
-pdf('~/Documents/GitHub/greeneMaui/data/plots/poritesnosc.pdf', width = 15, height = 10)
+pdf('~/Documents/GitHub/greeneMaui/data/plots/montiporanosc.pdf', width = 15, height = 10)
 elementalComposition%>%
   # group_by(SampleID, siteGroup, HCAgrouping)%>%
   # summarize_if(is.numeric, sum, na.rm = TRUE)%>%
@@ -1072,7 +1258,7 @@ dev.off()
 
 # Stats -- NOSC LMER --------------------------------------------------------------
 ## There was a significant difference between HCA groups and average sample NOSC score
-## p = 0.03002356 for Mont
+## p = 0.03002356 for Mont but post-hocs were insignificant before FDR correction. Likely Type II error.
 ## p = 2.429769e-07 for porites
 elementalStats <- elementalComposition%>%
   group_by(SampleID, siteGroup, HCAgrouping)%>%
@@ -1087,9 +1273,12 @@ elementalStats%>%
 #Significant differences between each group
 noscPvalues <- elementalStats%>%
   lmer(weightNOSC ~ HCAgrouping + (1|siteGroup), data = .)%>%
-  multcomp::glht(., linfct = multcomp::mcp(HCAgrouping = "Tukey"))%>%
-  summary(., test = multcomp::adjusted('BH'))%>%
-  tidy()%>%
+  # multcomp::glht(., linfct = multcomp::mcp(HCAgrouping = "Tukey"))%>%
+  # summary(., test = multcomp::adjusted('BH'))%>%
+  emmeans(pairwise ~ HCAgrouping, adjust = "tukey")%>%
+  summary()%>%
+  as.data.frame(.$contrasts)%>%
+  # tidy()%>%
   mutate(test = 'NOSC')
 
 
@@ -1110,9 +1299,12 @@ ncPvalues <- elementalComposition%>%
   summarize_if(is.numeric, sum, na.rm = TRUE)%>%
   ungroup()%>%
   lmer(weightN2c ~ HCAgrouping + (1|siteGroup), data = .)%>%
-  multcomp::glht(., linfct = multcomp::mcp(HCAgrouping = "Tukey"))%>%
-  summary(., test = multcomp::adjusted('BH'))%>%
-  tidy()%>%
+  # multcomp::glht(., linfct = multcomp::mcp(HCAgrouping = "Tukey"))%>%
+  # summary(., test = multcomp::adjusted('BH'))%>%
+  # tidy()%>%
+  emmeans(pairwise ~ HCAgrouping, adjust = "tukey")%>%
+  summary()%>%
+  as.data.frame(.$contrasts)%>%
   mutate(test = 'nc')
 
 ncPvalues
@@ -1133,83 +1325,102 @@ pcPvalues <- elementalComposition%>%
   summarize_if(is.numeric, sum, na.rm = TRUE)%>%
   ungroup()%>%
   lmer(weightP2c ~ HCAgrouping + (1|siteGroup), data = .)%>%
-  multcomp::glht(., linfct = multcomp::mcp(HCAgrouping = "Tukey"))%>%
-  summary(., test = multcomp::adjusted('BH'))%>%
-  tidy()%>%
+  emmeans(pairwise ~ HCAgrouping, adjust = "tukey")%>%
+  summary()%>%
+  as.data.frame(.$contrasts)%>%
+  # multcomp::glht(., linfct = multcomp::mcp(HCAgrouping = "Tukey"))%>%
+  # summary(., test = multcomp::adjusted('BH'))%>%
+  # tidy()%>%
   mutate(test = 'pc')
 
 pcPvalues
 
-
-# Visualization -- elemental ratios vs.  environmental variables ----------
-# Possibly delte this section  
-# Maybe not helpful for interpretation of the data
-elEnviro <- elementalComposition%>%
+# Stats -- linear model - elemental ratios and shannon diversity vs. environmental variables # NEED TO CHANGE BETWEN species ----------
+lmEnviro <- elementalComposition%>%
   filter(Site != 'Site-12')%>% # for Montipora
   group_by(SampleID, siteGroup, HCAgrouping)%>%
   summarize_if(is.numeric, sum, na.rm = TRUE)%>%
   ungroup()%>%
-  # group_by(siteGroup, HCAgrouping)%>%
-  # mutate(n = 1,
-  #        n = sum(n),
-  #        serr = sd(weightN2c)/sqrt(n))%>%
-  # summarize_if(is.numeric, mean, na.rm = TRUE)%>%
-  # ungroup()%>%
   select(siteGroup, HCAgrouping, weightN2c, weightP2c, weightNOSC)%>%
   pivot_longer(3:5, names_to = 'responseVar', values_to = 'values')%>%
-  left_join(enviroVariability, by = c('siteGroup', 'HCAgrouping'))
+  left_join(enviroVariability%>% select(-HCAgrouping), by = c('siteGroup'))
 
-# testLmData <- elEnviro%>%
-#   filter(responseVar == 'weightN2c')
-# 
-# testLm <- lm(values ~ TNC.Phosphate.Benthic.log + TNC.Ammonia.Benthic.log + TNC.Silicate.Benthic.log + habPercent,
-#    data = testLmData)
-# 
-# dredge(testLm)
+betaDivLm <- betaDiv%>%
+  select(-data)%>%
+  left_join(enviroVariability%>% select(-HCAgrouping), by = c('siteGroup'))
 
-n2cLm <- elEnviro%>%
-  group_by(responseVar)%>%
-  nest()%>%
-  mutate(data = map(data, ~lmer(values ~ TNC.Phosphate.Benthic.log + TNC.Ammonia.Benthic.log + TNC.Silicate.Benthic.log + habPercent + (1|HCAgrouping),
-                              data = .x)),
-         r2 = map(data, ~ r.squaredGLMM(.x))
-         )
+# Montipora Multiple R2 = 0.4353, p-value < 2.2e-16
+# Porites Multiple R2 = 0.4468, p-value < 2.2e-16
+shannonlm <- lm(shannon ~ TNC.Phosphate.Benthic.log + TNC.Ammonia.Benthic.log + TNC.Silicate.Benthic.log + habPercent,
+     data = betaDivLm)
 
-# Porites conditional r2
-# 0.5013139 nitrogen
-# 0.4309536 NOSC
-# 0.4890079 phosphorus 
+options(na.action = na.fail)
+MuMIn::dredge(shannonlm)
 
-# Montipora conditional r2
-# 0.3724013 nitrogen
+shannon <- lm(shannon ~ TNC.Phosphate.Benthic.log + TNC.Ammonia.Benthic.log + TNC.Silicate.Benthic.log + habPercent,
+   data = betaDivLm)%>%
+  tidy()%>%
+  rename(tValue = statistic)%>%
+  mutate(test = 'Shannon Diversity')
+  # summary()
 
-elEnviro%>%
-  ggplot(aes(TNC.Phosphate.Benthic.log, values)) +
-  geom_point() +
-  facet_wrap(~responseVar, scales = 'free_y') +
-  # geom_errorbar(aes(ymin = weightN2c - serr, ymax = weightN2c + serr)) +
-  geom_smooth(method = 'lm') 
-
-elEnviro%>%
-  ggplot(aes(TNC.Ammonia.Benthic.log, values)) +
-  geom_point() +
-  facet_wrap(~responseVar, scales = 'free_y') +
-  # geom_errorbar(aes(ymin = weightN2c - serr, ymax = weightN2c + serr)) +
-  geom_smooth(method = 'lm') 
-
-elEnviro%>%
-  ggplot(aes(TNC.Silicate.Benthic.log, values)) +
-  geom_point() +
-  facet_wrap(~responseVar, scales = 'free_y') +
-  # geom_errorbar(aes(ymin = weightN2c - serr, ymax = weightN2c + serr)) +
-  geom_smooth(method = 'lm') 
+# Montipora multiple R2 = 0.2897 p = 5.131e-12
+# Porites Multiple R2 = 0.3649, p-value < 2.2e-16
+n2cLmDf <- lmEnviro%>%
+  filter(responseVar == 'weightN2c')
   
-elEnviro%>%
-  ggplot(aes(habPercent, values)) +
-  geom_point() +
-  facet_wrap(~responseVar, scales = 'free_y') +
-  # geom_errorbar(aes(ymin = weightN2c - serr, ymax = weightN2c + serr)) +
-  geom_smooth(method = 'lm') 
+n2cLm <- lm(values ~ TNC.Phosphate.Benthic.log + TNC.Ammonia.Benthic.log + TNC.Silicate.Benthic.log + habPercent,
+   data = n2cLmDf)
+
+MuMIn::dredge(n2cLm)
+
+nitrogen <- lm(values ~ TNC.Phosphate.Benthic.log + TNC.Ammonia.Benthic.log + TNC.Silicate.Benthic.log + habPercent,
+   data = n2cLmDf)%>%
+  tidy()%>%
+  rename(tValue = statistic)%>%
+  mutate(test = 'N:C')
+
+# Montipora non significant
+# Porites Multiple R2 = 0.3053, p-value < 4.015e-14
+p2cLmDf <- lmEnviro%>%
+  filter(responseVar == 'weightP2c')
+
+p2cLm <- lm(values ~ TNC.Phosphate.Benthic.log + TNC.Ammonia.Benthic.log + TNC.Silicate.Benthic.log + habPercent,
+     data = p2cLmDf)
+
+MuMIn::dredge(p2cLm)
+
+#delete habPercent for Montipora
+phosphate <- lm(values ~ TNC.Phosphate.Benthic.log + TNC.Ammonia.Benthic.log + TNC.Silicate.Benthic.log, 
+   data = p2cLmDf)%>%
+  # summary()%>%
+  tidy()%>%
+  rename(tValue = statistic)%>%
+  mutate(test = 'P:C')
+
+# Montipora multiple R2 = 0.07631 p = 0.003354
+# Porites Multiple R2 = 0.05902, p-value < 7.712e-13
+noscLmDf <- lmEnviro%>%
+  filter(responseVar == 'weightNOSC')
+
+noscLm <- lm(values ~ TNC.Phosphate.Benthic.log + TNC.Ammonia.Benthic.log + TNC.Silicate.Benthic.log + habPercent,
+     data = noscLmDf)
+
+MuMIn::dredge(noscLm)
+
+# delete phosphate for montipora
+# Porites Multiple R2 = 0.2825, p-value < 0.7.712e-13
+nosc <- lm(values ~ TNC.Ammonia.Benthic.log + TNC.Silicate.Benthic.log + habPercent,
+             data = noscLmDf)%>%
+  tidy()%>%
+  rename(tValue = statistic)%>%
+  mutate(test = 'NOSC')
+
+combinedLmReport <- shannon%>%
+  bind_rows(nitrogen,phosphate, nosc)
+
+# write_csv(combinedLmReport, '~/Documents/GitHub/greeneMaui/data/analysis/poritesLmReports.csv')
+write_csv(combinedLmReport, '~/Documents/GitHub/greeneMaui/data/analysis/montiporaLmReports.csv')
 
 # analysis -- p strucutres ------------------------------------------------
 pContent <- elementalComposition%>%
@@ -1349,12 +1560,9 @@ cytoTable <-  statsWdf%>%
 write_csv(cytoTable, '~/Documents/GitHub/greeneMaui/data/analysis/cytoTable.csv')
 
 
-
-# Visual -- library matches by source -- violin plots ---------------------
-# Polyethylene glycols were all marked as coral metabolites because pentaethylene Glycol is produced by glycol
-# Watson and Jones et al., 1977; Huang et al., 2005 are all 
+# Visual -- library matches by source -- violin plots ## NEED TO CHANGE BETWEEN SPECIES ---------------------
 librarySources <- statsWdf%>%
-  filter(siteGroup != 'Site-12')%>%
+  # filter(siteGroup != 'Site-12')%>%
   filter(netVals %in% hcaSigSubnets)%>%
   left_join(libraryMatchClassyFire, by = 'featureNumber')%>%
   left_join(libraryMatchSources, by = 'Compound_Name')%>%
@@ -1365,7 +1573,7 @@ librarySources <- statsWdf%>%
   mutate(asin = asin(sqrt(ra)),
          log10 = log10(xic + 1))
 
-pdf('~/Documents/GitHub/greeneMaui/data/plots/poritessourceViolins.pdf', width = 10, height = 30)
+pdf('~/Documents/GitHub/greeneMaui/data/plots/montiporasourceViolins.pdf', width = 10, height = 30)
 librarySources%>%
   ggplot(aes(HCAgrouping, ra, fill = HCAgrouping)) +
   geom_violin() +
@@ -1380,6 +1588,7 @@ librarySources%>%
   facet_wrap(~Source, scales = 'free_y', nrow = 3)
 dev.off()
 
+
 # Stats -- library matches by source -- lmer ------------------------------
 librarySourceLmer <- librarySources%>%
   group_by(Source)%>%
@@ -1388,26 +1597,32 @@ librarySourceLmer <- librarySources%>%
                       car::Anova()%>%
                       .[['Pr(>Chisq)']]),
          tukey = map(data, ~lmer(asin ~ HCAgrouping + (1|siteGroup), data = .x)%>%
-                       multcomp::glht(., linfct = multcomp::mcp(HCAgrouping = "Tukey"))),
-         tukeyPvalues = map(tukey, ~summary(., test = multcomp::adjusted('BH'))))%>%
+                       emmeans(pairwise ~ HCAgrouping, adjust = "tukey")%>%
+                       summary()%>%
+                       as.data.frame(.$contrasts)))%>%
+                       # multcomp::glht(., linfct = multcomp::mcp(HCAgrouping = "Tukey"))),
+         # tukeyPvalues = map(tukey, ~summary(., test = multcomp::adjusted('BH'))))%>%
   unnest(c(lmer))%>%
   ungroup()%>%
   mutate(lmerFDR = p.adjust(lmer, method = 'BH'))
 
 sourcePvalues <- librarySourceLmer%>% 
   filter(lmerFDR < 0.05)%>%
-  select(Source, tukeyPvalues)%>% 
-  mutate(tukeyPvalues = map(tukeyPvalues, ~tidy(.x)))%>% 
-  unnest(tukeyPvalues)
+  select(Source, tukey)%>% 
+  # mutate(tukeyPvalues = map(tukeyPvalues, ~tidy(.x)))%>% 
+  unnest(tukey)%>%
+  filter(contrast != '.')%>%
+  mutate(fdr = p.adjust(p.value, method = 'BH'))
 
 
 # Stats -- FDR correction on Tukey values ---------------------------------
 statsCombined <- sourcePvalues%>%
   rename(test = Source)%>%
   bind_rows(shannonPvalues, 
-            noscPvalues,
-            pcPvalues, # only include for Porites
+            # noscPvalues, # only include for Porites
+            # pcPvalues, # only include for Porites
             ncPvalues)%>%
+  filter(!is.na(p.value))%>%
   mutate(fdr = p.adjust(p.value, method = 'BH'))
             
 
@@ -1423,7 +1638,7 @@ percentChangeSources <- librarySources%>%
   mutate(difference = (`3` - `1`)/`1`)
   
 # Porites percent changes:
-# coral: -16.7% stress: 113.0% cosmetic: 32.8%
+# coral: -16.3% stress: 113.0% cosmetic: 32.8%
 
 # Montipora percent changes:
 # coral: -50.9% stress: 36.4% cosmetic: 26.0%
@@ -1494,29 +1709,3 @@ anovaSuperclassesDf%>%
   # genTheme() +
   # labs(x = 'HCA group', y = 'Superclass sum relative abundance')
 dev.off()  
-
-# Stats -- linear model -- anthropogenic contamination DOES NOT explain coral cover, etc. ---------------
-sourceVTNC <- librarySources%>%
-  filter(Source == "Cosmetic, agricultural, pharmaceutical or industrial product")%>%
-  select(siteGroup, TNC.Coral.Cover, TNC.Coral.Diversity, TNC.Coral.Disease, TNC.Herbivore.Biomass, log10)%>%
-  group_by(siteGroup)%>%
-  summarize_if(is.numeric, mean, na.rm = TRUE)%>%
-  ungroup()%>%
-  left_join(coverChange%>%
-              select(siteGroup, estimate),
-            by = 'siteGroup')%>%
-  filter(!is.na(estimate))
-
-lm(estimate ~ log10, data = sourceVTNC)%>%
-  summary()
-
-lm(TNC.Coral.Disease ~ log10, data = sourceVTNC)%>%
-  summary()
-
-lm(TNC.Coral.Diversity ~ log10, data = sourceVTNC)%>%
-  summary()
-
-lm(TNC.Herbivore.Biomass ~ log10, data = sourceVTNC)%>%
-  summary()
-  
-
