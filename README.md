@@ -1,5 +1,7 @@
-# Coral metabolism and contaminant loads track human land use<img width="468" height="19" alt="image" src="https://github.com/user-attachments/assets/242669ad-d7ec-4dbc-8dbe-8b9483daf5fe" />
+# Coral metabolism and contaminant loads track human land use
  <br />
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20314872.svg)](https://doi.org/10.5281/zenodo.20314872) <br /><br />
+ 
 Zachary A. Quinlan*, Austin Greene†, William Leggat, Tess Moriarty, Tracy D. Ainsworth, Brunda Nijagal, Kim Falinski, E. Maggie Sogin, Jamie M. Caldwell, Scott F. Heron, Megan J. Donahue <br />
 †co-first author
 *Corresponding author
